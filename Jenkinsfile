@@ -19,7 +19,7 @@ pipeline {
     stage('Checkout') {
       steps {
         // PUBLIC repo:
-        git url: https://github.com/Harshvardhanpingane/java-login-db-demo.git, branch: main
+          git branch: 'main', url: 'https://github.com/Harshvardhanpingane/java-login-db-demo.git'
       }
     }
 
