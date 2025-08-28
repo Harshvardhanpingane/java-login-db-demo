@@ -33,6 +33,7 @@ pipeline {
                 if not exist build mkdir build
                 echo Sample artifact created by Jenkins on %date% %time% > build\\artifact.txt
                 echo === BUILD END ===
+                exit /b 1
                 '''
             }
         }
