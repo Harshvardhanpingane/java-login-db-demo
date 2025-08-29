@@ -1,27 +1,24 @@
 pipeline {
     agent any
 
-    // Options: timestamps आणि log rotator
     options {
-         timestamps() 
+        timestamps()
         buildDiscarder(logRotator(numToKeepStr: '15'))
     }
 
-    // Parameters block – Build with Parameters enable करतो
     parameters {
         choice(name: 'ENV', choices: ['dev', 'qa', 'prod'], description: 'Choose target environment')
     }
 
     triggers {
-        // Optional: Poll SCM every 2 minutes
-        pollSCM('H/2 * * * *')
+        // Poll SCM optional, can comment out if relying on webhook
+        // pollSCM('H/2 * * * *') 
     }
 
     stages {
         stage('Checkout') {
             steps {
-                // Git checkout
-                git branch: 'main', url: 'https://github.com/Harshvardhanpingane/java-login-db-demo.git'
+                git url: 'https://github.com/Harshvardhanpingane/java-login-db-demo.git', branch: 'main'
             }
         }
 
@@ -31,28 +28,28 @@ pipeline {
                 echo === BUILD START ===
                 echo Date: %date% %time%
                 if not exist build mkdir build
-                echo Sample artifact created by Jenkins on %date% %time% > build\\artifact.txt
+                echo Sample artifact 1 created by Jenkins on %date% %time% > build\\artifact1.txt
+                echo Sample artifact 2 created by Jenkins on %date% %time% > build\\artifact2.txt
                 echo === BUILD END ===
-                exit /b 1
                 '''
             }
         }
 
-        stage('Archive Artifact') {
+        stage('Archive Artifacts') {
             steps {
-                archiveArtifacts artifacts: 'build\\artifact.txt', onlyIfSuccessful: true
+                // Archive all txt files in build folder
+                archiveArtifacts artifacts: 'build\\*.txt', onlyIfSuccessful: true
             }
         }
 
         stage('Deploy') {
-            // Deploy only if ENV parameter is valid
             when { expression { params.ENV in ['dev','qa','prod'] } }
             steps {
                 bat """
                 set TARGET_DIR=C:\\deploy\\%ENV%
                 if not exist %TARGET_DIR% mkdir %TARGET_DIR%
-                copy /Y build\\artifact.txt %TARGET_DIR%\\artifact-%ENV%.txt
-                echo Deployed artifact to %TARGET_DIR%
+                copy /Y build\\*.txt %TARGET_DIR%\\
+                echo Deployed artifacts to %TARGET_DIR%
                 """
             }
         }
@@ -63,6 +60,7 @@ pipeline {
             echo "✅ ${env.JOB_NAME} #${env.BUILD_NUMBER} finished OK (ENV=${params.ENV})"
         }
         failure {
+            // Email on failure
             emailext(
                 subject: "❌ Jenkins FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 to: 'harshvardhanpingane2002@gmail.com',
@@ -74,6 +72,6 @@ ENV: ${params.ENV}
 Console: ${env.BUILD_URL}console
 """
             )
-        }
-    }
+        }
+    }
 }
