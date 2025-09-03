@@ -22,18 +22,24 @@ pipeline {
 
         stage('Build with Maven') {
             steps {
-                sh 'mvn clean package'
+                bat '"%MAVEN_HOME%\\bin\\mvn" clean package'
             }
         }
 
         stage('Deploy to Tomcat') {
             steps {
                 script {
-                    def warFile = sh(script: "ls target/*.war", returnStdout: true).trim()
-                    sh """
-                        curl -u $TOMCAT_USER:$TOMCAT_PASS \
-                        --upload-file $warFile \
-                        "$TOMCAT_URL/deploy?path=/pipelineapp&update=true"
+                     // WAR फाईल शोध
+                    def warFile = bat(
+                        script: 'dir /b target\\*.war',
+                        returnStdout: true
+                    ).trim()
+
+                    // WAR Tomcat वर deploy करा
+                    bat """
+                        curl -u %TOMCAT_USER%:%TOMCAT_PASS% ^
+                        --upload-file target\\${warFile} ^
+                        "%TOMCAT_URL%/deploy?path=/pipelineapp&update=true"
                     """
                 }
             }
