@@ -25,7 +25,7 @@ pipeline {
                 echo 'Checking Maven and Java'
                 bat 'where mvn'
                 bat 'where java'
-                bat '"%MAVEN_HOME%\\bin\\mvn.cmd" clean package'
+                bat '"D:\\apache-maven-3.9.11\\bin\\mvn.cmd" clean package'
             }
         }
 
