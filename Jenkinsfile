@@ -22,7 +22,10 @@ pipeline {
 
         stage('Build with Maven') {
             steps {
-                bat '"%MAVEN_HOME%\\bin\\mvn" clean package'
+                echo Checking Maven and Java
+                where mvn
+                where java
+                "%MAVEN_HOME%\\bin\\mvn.cmd" clean package
             }
         }
 
