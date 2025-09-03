@@ -19,6 +19,11 @@ pipeline {
                     url: 'https://github.com/Harshvardhanpingane/java-login-db-demo.git'
             }
         }
+        stage('Check PATH') {
+            steps {
+                bat 'echo %PATH%'
+            }
+        }
 
         stage('Build with Maven') {
             steps {
