@@ -1,77 +1,51 @@
 pipeline {
     agent any
-
-    options {
-        timestamps()
-        buildDiscarder(logRotator(numToKeepStr: '15'))
+    
+    tools {
+        maven 'Maven3'  // Define Maven tool installed in Jenkins
+        jdk 'Java11'    // Define JDK installed in Jenkins
     }
 
-    parameters {
-        choice(name: 'ENV', choices: ['dev', 'qa', 'prod'], description: 'Choose target environment')
-    }
-
-    triggers {
-        // Poll SCM optional, can comment out if relying on webhook
-        // pollSCM('H/2 * * * *') 
+    environment {
+        TOMCAT_USER = 'admin'
+        TOMCAT_PASS = 'admin123'
+        TOMCAT_URL  = 'http://localhost:8080/manager/text'
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/Harshvardhanpingane/java-login-db-demo.git', branch: 'main'
+                git branch: 'main',
+                    url: 'https://github.com/<your-repo>.git'
             }
         }
 
-        stage('Build') {
+        stage('Build with Maven') {
             steps {
-                bat '''
-                echo === BUILD START ===
-                echo Date: %date% %time%
-                if not exist build mkdir build
-                echo Sample artifact 1 created by Jenkins on %date% %time% > build\\artifact1.txt
-                echo Sample artifact 2 created by Jenkins on %date% %time% > build\\artifact2.txt
-                echo === BUILD END ===
-                '''
+                sh 'mvn clean package'
             }
         }
 
-        stage('Archive Artifacts') {
+        stage('Deploy to Tomcat') {
             steps {
-                // Archive all txt files in build folder
-                archiveArtifacts artifacts: 'build\\*.txt', onlyIfSuccessful: true
-            }
-        }
-
-        stage('Deploy') {
-            when { expression { params.ENV in ['dev','qa','prod'] } }
-            steps {
-                bat """
-                set TARGET_DIR=C:\\deploy\\%ENV%
-                if not exist %TARGET_DIR% mkdir %TARGET_DIR%
-                copy /Y build\\*.txt %TARGET_DIR%\\
-                echo Deployed artifacts to %TARGET_DIR%
-                """
+                script {
+                    def warFile = sh(script: "ls target/*.war", returnStdout: true).trim()
+                    sh """
+                        curl -u $TOMCAT_USER:$TOMCAT_PASS \
+                        --upload-file $warFile \
+                        "$TOMCAT_URL/deploy?path=/pipelineapp&update=true"
+                    """
+                }
             }
         }
     }
 
     post {
         success {
-            echo "✅ ${env.JOB_NAME} #${env.BUILD_NUMBER} finished OK (ENV=${params.ENV})"
+            echo "✅ Build and Deploy Successful!"
         }
         failure {
-            // Email on failure
-            emailext(
-                subject: "❌ Jenkins FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                to: 'harshvardhanpingane2002@gmail.com',
-                body: """Build failed.
-
-Job: ${env.JOB_NAME}
-Build: #${env.BUILD_NUMBER}
-ENV: ${params.ENV}
-Console: ${env.BUILD_URL}console
-"""
-            )
+            echo "❌ Build or Deploy Failed!"
         }
     }
 }
